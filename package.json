@@ -1,5 +1,5 @@
 {
-  "name": "@semantq/semantq_auth",
+  "name": "@semantq/auth",
   "version": "1.0.0",
   "description": "Full stack (mysql/supabase) based authentication package for Semantq JS Framework",
   "main": "index.js",
