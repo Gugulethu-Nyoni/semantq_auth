@@ -1,10 +1,14 @@
-import { signupUser, loginUser, initiatePasswordReset, resetUserPassword } from '../../services/auth/service.js';
-import { emailService } from '../../services/email.js';
-import { successResponse, errorResponse } from '../utils/response.js';
+//semantq_auth/controllers/authController.js
+import { signupUser, loginUser, initiatePasswordReset, resetUserPassword } from '../services/authService.js';
+import { emailServicePromise } from '../services/email.js';
+import { successResponse, errorResponse } from '../lib/utils/response.js';
 import jwt from 'jsonwebtoken';
-import config from '../../../config/auth.js';
-import { findUserByVerificationToken, verifyUserById, findUserById } from '../../models/user.js';
-import { getCookieOptions } from '../../../config/cookies.js';
+import config from '../config/auth.js';
+
+import models from '../models/index.js';
+const { findUserByVerificationToken, verifyUserById, findUserById } = models;
+
+import { getCookieOptions } from '../config/cookies.js';
 
 // Signup
 export const signupHandler = async (req, res) => {
@@ -16,6 +20,7 @@ export const signupHandler = async (req, res) => {
 
     const { verification_token } = await signupUser({ name, email, password });
 
+    const emailService = await emailServicePromise;
     await emailService.sendConfirmationEmail({
       to: email,
       name,
@@ -39,11 +44,9 @@ export const signupHandler = async (req, res) => {
 export const confirmEmailHandler = async (req, res) => {
   const { token } = req.body;
 
-console.log('Received token:', token);
-const user = await findUserByVerificationToken(token);
-console.log('User found:', user);
-
-
+  console.log('Received token:', token);
+  const user = await findUserByVerificationToken(token);
+  console.log('User found:', user);
 
   if (!token) return errorResponse(res, 'Verification token missing.', 400);
 
@@ -63,7 +66,6 @@ console.log('User found:', user);
 };
 
 // Login
-// Login
 export const loginHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -73,10 +75,10 @@ export const loginHandler = async (req, res) => {
 
     const { user, token } = await loginUser({ email, password });
 
-    console.log('[loginHandler] JWT token:', token);  // <-- Add this line
+    console.log('[loginHandler] JWT token:', token);
 
     console.log('[AUTH] Setting auth_token cookie with options:', getCookieOptions());
-    res.cookie('auth_token', token, getCookieOptions());  // <-- This line sets cookie
+    res.cookie('auth_token', token, getCookieOptions());
 
     return successResponse(res, 'Login successful.', { user });
 
@@ -88,8 +90,6 @@ export const loginHandler = async (req, res) => {
     return errorResponse(res, err.message || 'Login failed.', 500);
   }
 };
-
-
 
 // Validate Session
 export const validateSessionHandler = (req, res) => {
@@ -150,94 +150,84 @@ export const verifyTokenHandler = async (req, res) => {
   }
 };
 
-
-
 export const getUserProfileHandler = async (req, res) => {
-    try {
-        // req.userId should be populated by the authenticateToken middleware
-        const userId = req.userId;
-        if (!userId) {
-            return errorResponse(res, 'User ID not found in request context', 400); // Should not happen if middleware works
-        }
-
-        const user = await findUserById(userId); // Fetch user from DB
-        if (!user) {
-            return errorResponse(res, 'User not found', 404);
-        }
-
-        // Return only necessary profile data, avoid sensitive info like password hashes
-        const profile = {
-            id: user.id,
-            email: user.email,
-            name: user.name, // Assuming 'name' field exists
-            // Add other profile fields you want to expose
-        };
-
-        return successResponse(res, 'User profile fetched successfully.', { profile });
-
-    } catch (err) {
-        console.error('[AUTH] Error fetching user profile:', err);
-        return errorResponse(res, 'Failed to fetch user profile.', 500);
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return errorResponse(res, 'User ID not found in request context', 400);
     }
+
+    const user = await findUserById(userId);
+    if (!user) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    const profile = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    };
+
+    return successResponse(res, 'User profile fetched successfully.', { profile });
+
+  } catch (err) {
+    console.error('[AUTH] Error fetching user profile:', err);
+    return errorResponse(res, 'Failed to fetch user profile.', 500);
+  }
 };
 
 export const logoutHandler = (req, res) => {
-    try {
-        // Clear the HttpOnly cookie by setting it to an expired date
-        res.cookie('auth_token', '', { expires: new Date(0), httpOnly: true, path: '/', sameSite: 'Lax' });
-        console.log('[AUTH] User logged out, auth_token cookie cleared.');
-        return successResponse(res, 'Logged out successfully.');
-    } catch (err) {
-        console.error('[AUTH] Logout error:', err);
-        return errorResponse(res, 'Logout failed.', 500);
-    }
+  try {
+    res.cookie('auth_token', '', { expires: new Date(0), httpOnly: true, path: '/', sameSite: 'Lax' });
+    console.log('[AUTH] User logged out, auth_token cookie cleared.');
+    return successResponse(res, 'Logged out successfully.');
+  } catch (err) {
+    console.error('[AUTH] Logout error:', err);
+    return errorResponse(res, 'Logout failed.', 500);
+  }
 };
 
-
-// ✅ NEW: Handle forgot password request (send reset link)
+// Handle forgot password request (send reset link)
 export const forgotPasswordHandler = async (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email) {
-            return errorResponse(res, 'Email is required.', 400);
-        }
-
-        const { name, token } = await initiatePasswordReset(email);
-
-        // Always send a success response to prevent email enumeration,
-        // even if the email doesn't exist in the database.
-        // The actual email sending logic will handle if the user exists.
-        if (token) { // Only send email if a token was generated (meaning user exists)
-            await emailService.sendPasswordResetEmail({
-                to: email,
-                name: name,
-                token: token
-            });
-        }
-        
-        return successResponse(res, 'If an account with that email exists, a password reset link has been sent.', null, 200);
-
-    } catch (err) {
-        console.error('[AUTH] Forgot password error:', err);
-        return errorResponse(res, err.message || 'Failed to initiate password reset.', 500);
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return errorResponse(res, 'Email is required.', 400);
     }
+
+    const { name, token } = await initiatePasswordReset(email);
+
+    if (token) {
+      const emailService = await emailServicePromise;
+      await emailService.sendPasswordResetEmail({
+        to: email,
+        name,
+        token
+      });
+    }
+
+    return successResponse(res, 'If an account with that email exists, a password reset link has been sent.', null, 200);
+
+  } catch (err) {
+    console.error('[AUTH] Forgot password error:', err);
+    return errorResponse(res, err.message || 'Failed to initiate password reset.', 500);
+  }
 };
 
-// ✅ NEW: Handle actual password reset (with token)
+// Handle actual password reset (with token)
 export const resetPasswordHandler = async (req, res) => {
-    try {
-        const { token, newPassword } = req.body;
-        if (!token || !newPassword) {
-            return errorResponse(res, 'Token and new password are required.', 400);
-        }
-
-        await resetUserPassword(token, newPassword);
-
-        return successResponse(res, 'Password has been reset successfully.', null, 200);
-
-    } catch (err) {
-        console.error('[AUTH] Reset password error:', err);
-        return errorResponse(res, err.message || 'Failed to reset password.', 500);
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return errorResponse(res, 'Token and new password are required.', 400);
     }
-};
 
+    await resetUserPassword(token, newPassword);
+
+    return successResponse(res, 'Password has been reset successfully.', null, 200);
+
+  } catch (err) {
+    console.error('[AUTH] Reset password error:', err);
+    return errorResponse(res, err.message || 'Failed to reset password.', 500);
+  }
+};

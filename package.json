@@ -4,9 +4,8 @@
   "description": "Full stack (MySQL/Supabase) authentication package for Semantq JS Framework",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "test": "echo \"No tests specified\" && exit 0"
-  },
+  "author": "Gugulethu Nyoni",
+  "license": "ISC",
   "keywords": [
     "semantq",
     "auth",
@@ -15,10 +14,41 @@
     "supabase",
     "framework"
   ],
-  "author": "Gugulethu Nyoni",
-  "license": "ISC",
+  "semantq-module": true,
   "publishConfig": {
     "access": "public"
   },
-  "semantq-module": true
+  "scripts": {
+    "test": "jest",
+    "start": "node ./semantq_server/server.js",
+    "dev": "nodemon ./semantq_server/server.js",
+    "build": "echo \"No build step specified\" && exit 0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "chalk": "^5.4.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.1",
+    "inquirer": "^9.2.17",
+    "jsonwebtoken": "^9.0.2",
+    "mailgun-js": "^0.22.0",
+    "mongodb": "^6.17.0",
+    "mysql2": "^3.14.1",
+    "nodemailer": "^7.0.3",
+    "resend": "^4.6.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.0.3",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.0.0",
+    "husky": "^9.0.11",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "serve": "^14.2.1"
+  },
+  "peerDependencies": {
+    "express": "^4.18.2"
+  }
 }

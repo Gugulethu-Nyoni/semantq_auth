@@ -1,6 +1,6 @@
 // src/services/auth/strategies/jwt.js
 import jwt from 'jsonwebtoken';
-import config from '../../../../config/auth.js';
+import config from '../../config/auth.js';
 
 // Define default expiry times if not specified in config
 const JWT_SECRET = config.jwtSecret;

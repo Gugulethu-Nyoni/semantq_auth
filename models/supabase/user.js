@@ -1,7 +1,5 @@
-//src/models/supabase/user.js
-import { getSupabaseAdapter } from '../../adapters/databases/supabase/index.js';
-
-const db = getSupabaseAdapter();  // your singleton Supabase adapter instance
+//semantq_server/models/supabase/user.js
+import supabaseAdapter from '../../../../models/adapters/supabase.js';
 
 // Helper to get single row or null
 async function getSingleRow(query) {
@@ -10,17 +8,16 @@ async function getSingleRow(query) {
   return data;
 }
 
-
 // Find user by email
 export const findUserByEmail = async (email) => {
   return await getSingleRow(
-    db.client.from('users').select('*').eq('email', email)
+    supabaseAdapter.from('users').select('*').eq('email', email)
   );
 };
 
 // Create new user
 export const createUser = async (user) => {
-  const { data, error } = await db.client.from('users')
+  const { data, error } = await supabaseAdapter.from('users')
     .insert([{
       name: user.name || null,
       email: user.email || null,
@@ -28,26 +25,24 @@ export const createUser = async (user) => {
       verification_token: user.verification_token || null,
       verification_token_expires_at: user.verification_token_expires_at || null
     }])
-    .select('id');  // ✅ Important: tell Supabase to return the inserted id
+    .select('id');
 
   if (error) throw error;
   if (!data || !data[0]) throw new Error('User creation failed, no record returned.');
 
-  // Return the inserted user's id
   return data[0].id;
 };
-
 
 // Find user by verification token
 export const findUserByVerificationToken = async (token) => {
   return await getSingleRow(
-    db.client.from('users').select('*').eq('verification_token', token)
+    supabaseAdapter.from('users').select('*').eq('verification_token', token)
   );
 };
 
 // Mark user as verified by ID
 export const verifyUserById = async (userId) => {
-  const { error } = await db.client.from('users').update({
+  const { error } = await supabaseAdapter.from('users').update({
     is_verified: true,
     verification_token: null,
     verification_token_expires_at: null
@@ -59,13 +54,13 @@ export const verifyUserById = async (userId) => {
 // Find user by ID
 export const findUserById = async (id) => {
   return await getSingleRow(
-    db.client.from('users').select('id,email,name').eq('id', id)
+    supabaseAdapter.from('users').select('id,email,name').eq('id', id)
   );
 };
 
 // Store password reset token
 export const storePasswordResetToken = async (userId, token, expiresAt) => {
-  const { error } = await db.client.from('users').update({
+  const { error } = await supabaseAdapter.from('users').update({
     reset_token: token,
     reset_token_expires_at: expiresAt
   }).eq('id', userId);
@@ -76,7 +71,7 @@ export const storePasswordResetToken = async (userId, token, expiresAt) => {
 // Find user by password reset token (and not expired)
 export const findUserByPasswordResetToken = async (token) => {
   return await getSingleRow(
-    db.client.from('users')
+    supabaseAdapter.from('users')
       .select('*')
       .eq('reset_token', token)
       .gt('reset_token_expires_at', new Date().toISOString())
@@ -85,7 +80,7 @@ export const findUserByPasswordResetToken = async (token) => {
 
 // Update password and clear reset token
 export const updatePasswordAndClearResetToken = async (userId, newPasswordHash) => {
-  const { error } = await db.client.from('users').update({
+  const { error } = await supabaseAdapter.from('users').update({
     password_hash: newPasswordHash,
     reset_token: null,
     reset_token_expires_at: null
