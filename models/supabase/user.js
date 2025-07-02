@@ -1,5 +1,5 @@
 //semantq_server/models/supabase/user.js
-import supabaseAdapter from '../../../../models/adapters/supabase.js';
+import supabaseAdapter from '../../../../../models/adapters/supabase.js';
 
 // Helper to get single row or null
 async function getSingleRow(query) {

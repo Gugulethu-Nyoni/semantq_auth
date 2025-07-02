@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 // Current file: semantq_server/packages/semantq_auth/models/index.js
 // Target: semantq_server/config_loader.js
 // Path: ../../../config_loader.js is correct.
-import loadConfigPromise from '../../../config_loader.js';
+import loadConfigPromise from '../../../../config_loader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +32,7 @@ try {
   // Target: semantq_server/models/adapters/{adapterName}.js
   // Path: ../../../../models/adapters/{adapterName}.js
   const adapterModulePath = pathToFileURL(
-    path.join(__dirname, '../../../models/adapters', `${adapterName}.js`)
+    path.join(__dirname, '../../../../models/adapters', `${adapterName}.js`)
   ).href;
 
   // Dynamically import the adapter module

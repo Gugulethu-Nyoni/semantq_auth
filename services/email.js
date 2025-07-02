@@ -2,7 +2,7 @@
 
 // --- IMPORTANT CHANGE HERE ---
 // Import the config loader module
-import loadConfigPromise from '../../../config_loader.js';
+import loadConfigPromise from '../../../../config_loader.js';
 // --- END IMPORTANT CHANGE ---
 
 import { Resend } from 'resend';
