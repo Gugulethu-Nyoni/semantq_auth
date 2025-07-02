@@ -1,11 +1,24 @@
 {
   "name": "@semantq/auth",
   "version": "1.0.0",
-  "description": "Full stack (mysql/supabase) based authentication package for Semantq JS Framework",
+  "description": "Full stack (MySQL/Supabase) authentication package for Semantq JS Framework",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"No tests specified\" && exit 0"
   },
+  "keywords": [
+    "semantq",
+    "auth",
+    "authentication",
+    "mysql",
+    "supabase",
+    "framework"
+  ],
   "author": "Gugulethu Nyoni",
-  "license": "ISC"
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
+  "semantq-module": true
 }
