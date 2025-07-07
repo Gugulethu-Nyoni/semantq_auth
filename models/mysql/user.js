@@ -1,6 +1,6 @@
 // semantq_auth/models/mysql/user.js
 // FIX: Corrected path to import the mysqlAdapter from the main semantq_server's models/adapters
-import mysqlAdapter from '../../../../models/adapters/mysql.js'; // This path goes up 4 levels to semantq_server/models/adapters/mysql.js
+import mysqlAdapter from '../../../../../models/adapters/mysql.js'; // This path goes up 4 levels to semantq_server/models/adapters/mysql.js
 
 // Find user by email
 export const findUserByEmail = async (email) => {
