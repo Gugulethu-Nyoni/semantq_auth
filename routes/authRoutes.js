@@ -16,7 +16,7 @@
 
     // Public routes (no authentication required)
     router.post('/signup', signupHandler);
-    router.post('/confirm-email', confirmEmailHandler);
+    router.post('/confirm', confirmEmailHandler);
     router.post('/login', loginHandler);
     router.post('/forgot-password', forgotPasswordHandler);
     router.post('/reset-password', resetPasswordHandler);
