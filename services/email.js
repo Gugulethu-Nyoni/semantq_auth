@@ -124,7 +124,7 @@ export class EmailService {
     if (!this.driver) {
         throw new Error("EmailService driver not initialized. Call EmailService.create() first.");
     }
-    const confirmationUrl = `${process.env.UI_BASE_URL}/confirm-email?token=${token}`;
+    const confirmationUrl = `${process.env.FRONTEND_BASE_URL}/auth/confirm?token=${token}`;
     const subject = `Confirm Your ${process.env.BRAND_NAME} Account`;
 
     const html = this._generateConfirmationTemplate({
@@ -200,7 +200,7 @@ export class EmailService {
     if (!this.driver) {
         throw new Error("EmailService driver not initialized. Call EmailService.create() first.");
     }
-    const resetUrl = `${process.env.UI_BASE_URL}/reset-password?token=${token}`;
+    const resetUrl = `${process.env.FRONTEND_BASE_URL}/auth/reset?token=${token}`;
     const subject = `Reset Your ${process.env.BRAND_NAME} Password`;
 
     const html = this._generatePasswordResetTemplate({
