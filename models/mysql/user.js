@@ -14,14 +14,15 @@ export const findUserByEmail = async (email) => {
 // Create new user
 export const createUser = async (user) => {
   const [result] = await mysqlAdapter.query(
-    `INSERT INTO users (name, email, password_hash, verification_token, verification_token_expires_at)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO users (name, email, password_hash, verification_token, verification_token_expires_at, access_level)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       user.name || null,
       user.email || null,
       user.password_hash || null,
       user.verification_token || null,
-      user.verification_token_expires_at || null
+      user.verification_token_expires_at || null,
+      user.access_level || 1 // Default to 1 (Standard User) if not provided
     ]
   );
   return result.insertId;
