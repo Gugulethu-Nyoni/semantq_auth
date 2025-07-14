@@ -1,48 +1,42 @@
 // semantq_auth/services/authService.js
-import models from '../models/index.js'; // Imports the default 'models' object from index.js
+import models from '../models/index.js';
 import { hashPassword, comparePassword } from './password.js';
 import { generateVerificationToken, generateAuthToken, generatePasswordResetToken } from './strategies/jwt.js';
 
-export const signupUser = async ({ name, email, password }) => {
+export const signupUser = async ({ name, email, password, access_level = 1 }) => { // Added access_level with default
   console.log('[signupUser] Starting signup for:', email);
 
-  // 1. Check if email already exists
-  // FIX: Call findUserByEmail directly on the 'models' object
   const existingUser = await models.findUserByEmail(email);
   if (existingUser) {
     console.log('[signupUser] Email already registered:', email);
     throw new Error('Email is already registered.');
   }
 
-  // 2. Hash the password
   const password_hash = await hashPassword(password);
   console.log('[signupUser] Password hashed');
 
-  // 3. Generate verification token and expiry
   const { token, expiresAt } = generateVerificationToken({ email });
   console.log('[signupUser] Generated token:', token, 'Expires at:', expiresAt);
 
-  // 4. Create user in DB
-  // FIX: Call createUser directly on the 'models' object
   const user = await models.createUser({
     name,
     email,
     password_hash,
     verification_token: token,
-    verification_token_expires_at: expiresAt
+    verification_token_expires_at: expiresAt,
+    access_level // Pass the access_level to createUser
   });
   console.log('[signupUser] User created with id:', user);
 
-  // 5. Return relevant info (do NOT send email here)
   return {
     verification_token: token,
     email,
-    name
+    name,
+    access_level // Return access_level if needed by handler
   };
 };
 
 export const loginUser = async ({ email, password }) => {
-  // FIX: Call findUserByEmail directly on the 'models' object
   const user = await models.findUserByEmail(email);
   if (!user) throw new Error('Invalid email or password.');
 
@@ -51,9 +45,10 @@ export const loginUser = async ({ email, password }) => {
   const passwordValid = await comparePassword(password, user.password_hash);
   if (!passwordValid) throw new Error('Invalid email or password.');
 
-  const token = generateAuthToken({ userId: user.id, email: user.email });
+  // MODIFIED: Include user's access_level in the JWT payload
+  const token = generateAuthToken({ userId: user.id, email: user.email, access_level: user.access_level });
 
-  return { user: { id: user.id, email: user.email, name: user.name }, token };
+  return { user: { id: user.id, email: user.email, name: user.name, access_level: user.access_level }, token }; // Return access_level
 };
 
 // ✅ NEW: Initiate password reset
