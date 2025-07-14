@@ -52,7 +52,7 @@ export const verifyUserById = async (userId) => {
 // Find user by ID
 export const findUserById = async (id) => {
   const [rows] = await mysqlAdapter.query(
-    'SELECT id, email, name FROM users WHERE id = ?',
+    'SELECT id, email, name, access_level FROM users WHERE id = ?', // Include access_level
     [id]
   );
   return rows[0];
