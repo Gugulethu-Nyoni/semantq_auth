@@ -151,29 +151,30 @@ export const verifyTokenHandler = async (req, res) => {
 };
 
 export const getUserProfileHandler = async (req, res) => {
-  try {
-    const userId = req.userId;
-    if (!userId) {
-      return errorResponse(res, 'User ID not found in request context', 400);
+    try {
+        const userId = req.userId;
+        if (!userId) {
+            return errorResponse(res, 'User ID not found in request context', 400);
+        }
+
+        const user = await findUserById(userId);
+        if (!user) {
+            return errorResponse(res, 'User not found', 404);
+        }
+
+        const profile = {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            access_level: user.access_level, // Include the access_level here
+        };
+
+        return successResponse(res, 'User profile fetched successfully.', { profile });
+
+    } catch (err) {
+        console.error('[AUTH] Error fetching user profile:', err);
+        return errorResponse(res, 'Failed to fetch user profile.', 500);
     }
-
-    const user = await findUserById(userId);
-    if (!user) {
-      return errorResponse(res, 'User not found', 404);
-    }
-
-    const profile = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    };
-
-    return successResponse(res, 'User profile fetched successfully.', { profile });
-
-  } catch (err) {
-    console.error('[AUTH] Error fetching user profile:', err);
-    return errorResponse(res, 'Failed to fetch user profile.', 500);
-  }
 };
 
 export const logoutHandler = (req, res) => {
