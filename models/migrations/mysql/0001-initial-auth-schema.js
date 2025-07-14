@@ -5,6 +5,7 @@ export const up = async (db) => {
   await db.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
+      access_level INT NOT NULL DEFAULT 1, -- NEW: Added access_level field
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash VARCHAR(255) NOT NULL,
       name VARCHAR(100),
@@ -31,10 +32,10 @@ export const up = async (db) => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT,
       action ENUM(
-        'register', 
-        'login', 
+        'register',
+        'login',
         'login_failed',
-        'logout', 
+        'logout',
         'password_reset',
         'email_verified',
         'account_locked'
