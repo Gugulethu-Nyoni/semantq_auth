@@ -1,4 +1,4 @@
-//semantq_auth/controllers/authController.js
+// semantq_auth/controllers/authController.js
 import { signupUser, loginUser, initiatePasswordReset, resetUserPassword } from '../services/authService.js';
 import { emailServicePromise } from '../services/email.js';
 import { successResponse, errorResponse } from '../lib/utils/response.js';
@@ -45,14 +45,17 @@ export const confirmEmailHandler = async (req, res) => {
   const { token } = req.body;
 
   console.log('Received token:', token);
-  const user = await findUserByVerificationToken(token);
-  console.log('User found:', user);
+  // NOTE: The original code had a duplicate user lookup here.
+  // The jwt.verify will handle the token validity, and findUserByVerificationToken
+  // is then used to ensure the user exists and is not already verified.
+  // const user = await findUserByVerificationToken(token); // This line can be removed or kept for initial debug
+  // console.log('User found:', user);
 
   if (!token) return errorResponse(res, 'Verification token missing.', 400);
 
   try {
-    const decoded = jwt.verify(token, config.jwtSecret);
-    const user = await findUserByVerificationToken(token);
+    const decoded = jwt.verify(token, config.jwtSecret); // This decodes the token
+    const user = await findUserByVerificationToken(token); // This fetches user by the token
     if (!user) return errorResponse(res, 'Invalid or expired token.', 400);
     if (user.is_verified) return successResponse(res, 'Email already verified.', null, 200);
 
@@ -91,18 +94,19 @@ export const loginHandler = async (req, res) => {
   }
 };
 
-// Validate Session
+// Validate Session - MODIFIED to return access_level
 export const validateSessionHandler = (req, res) => {
   try {
     const token = req.cookies.auth_token;
     if (!token) return errorResponse(res, 'No session token', 401);
 
-    jwt.verify(token, config.jwtSecret, {
+    const payload = jwt.verify(token, config.jwtSecret, {
       issuer: 'authentique',
       audience: 'ui-server'
     });
 
-    return successResponse(res, 'Session valid', { valid: true });
+    // Extract access_level from the payload and return it
+    return successResponse(res, 'Session valid', { valid: true, access_level: payload.access_level });
 
   } catch (err) {
     console.error('[AUTH] Session validation failed:', err);
@@ -132,7 +136,7 @@ export const verifyTokenHandler = async (req, res) => {
       data: {
         userId: payload.userId,
         email: payload.email,
-        role: payload.role || 'user',
+        access_level: payload.access_level || 1, // Ensure access_level is returned
         sessionValid: true
       }
     });
@@ -151,30 +155,30 @@ export const verifyTokenHandler = async (req, res) => {
 };
 
 export const getUserProfileHandler = async (req, res) => {
-    try {
-        const userId = req.userId;
-        if (!userId) {
-            return errorResponse(res, 'User ID not found in request context', 400);
-        }
-
-        const user = await findUserById(userId);
-        if (!user) {
-            return errorResponse(res, 'User not found', 404);
-        }
-
-        const profile = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            access_level: user.access_level, // Include the access_level here
-        };
-
-        return successResponse(res, 'User profile fetched successfully.', { profile });
-
-    } catch (err) {
-        console.error('[AUTH] Error fetching user profile:', err);
-        return errorResponse(res, 'Failed to fetch user profile.', 500);
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return errorResponse(res, 'User ID not found in request context', 400);
     }
+
+    const user = await findUserById(userId);
+    if (!user) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    const profile = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      access_level: user.access_level, // Include the access_level here
+    };
+
+    return successResponse(res, 'User profile fetched successfully.', { profile });
+
+  } catch (err) {
+    console.error('[AUTH] Error fetching user profile:', err);
+    return errorResponse(res, 'Failed to fetch user profile.', 500);
+  }
 };
 
 export const logoutHandler = (req, res) => {
