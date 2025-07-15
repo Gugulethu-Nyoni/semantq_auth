@@ -1,6 +1,6 @@
 {
   "name": "@semantq/auth",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Full stack (MySQL/Supabase) authentication package for Semantq JS Framework",
   "main": "index.js",
   "type": "module",
