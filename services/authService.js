@@ -51,6 +51,7 @@ export const loginUser = async ({ email, password }) => {
   return { user: { id: user.id, email: user.email, name: user.name, access_level: user.access_level }, token }; // Return access_level
 };
 
+
 // ✅ NEW: Initiate password reset
 export const initiatePasswordReset = async (email) => {
   // FIX: Call findUserByEmail directly on the 'models' object

@@ -1,6 +1,5 @@
 // semantq_auth/models/mysql/user.js
-// FIX: Corrected path to import the mysqlAdapter from the main semantq_server's models/adapters
-import mysqlAdapter from '../../../../../models/adapters/mysql.js'; // This path goes up 4 levels to semantq_server/models/adapters/mysql.js
+import mysqlAdapter from '../../../../../models/adapters/mysql.js';
 
 // Find user by email
 export const findUserByEmail = async (email) => {
@@ -11,7 +10,7 @@ export const findUserByEmail = async (email) => {
   return rows[0];
 };
 
-// Create new user
+// Create new user - MODIFIED to include role
 export const createUser = async (user) => {
   const [result] = await mysqlAdapter.query(
     `INSERT INTO users (name, email, password_hash, verification_token, verification_token_expires_at, access_level)
@@ -27,6 +26,7 @@ export const createUser = async (user) => {
   );
   return result.insertId;
 };
+
 
 // Find user by verification token
 export const findUserByVerificationToken = async (token) => {
@@ -49,7 +49,8 @@ export const verifyUserById = async (userId) => {
   );
 };
 
-// Find user by ID
+// Find user by ID - MODIFIED to include role
+// Find user by ID - MODIFIED to include access_level
 export const findUserById = async (id) => {
   const [rows] = await mysqlAdapter.query(
     'SELECT id, email, name, access_level FROM users WHERE id = ?', // Include access_level
