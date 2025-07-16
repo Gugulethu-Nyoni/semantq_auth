@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL") // stored in .env
+}
+
+model User {
+  id                            Int       @id @default(autoincrement())
+  access_level                  Int       @default(1) // NEW: access_level
+  name                          String?
+  surname                       String?
+  email                         String    @unique
+  password_hash                 String
+  is_verified                   Boolean   @default(false)
+  verification_token            String?   @db.VarChar(512) // MODIFIED: Explicitly set length to 512
+  verification_token_expires_at DateTime?
+  reset_token                   String?   @db.VarChar(512) // MODIFIED: Explicitly set length to 512
+  reset_token_expires_at        DateTime?
+  last_login_at                 DateTime?
+  failed_login_attempts         Int       @default(0)
+  status                        UserStatus @default(active)
+  createdAt                     DateTime  @default(now()) @map("created_at") // Map to existing column name
+  updatedAt                     DateTime  @default(now()) @updatedAt @map("updated_at") // MODIFIED: Added @default(now())
+
+  sessions                      Session[]
+  authLogs                      AuthLog[]
+
+  @@map("users") // Map model name to existing table name
+}
+
+model Session {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int       @map("user_id") // Map to existing column name
+  token       String    @unique
+  device_info String?   @map("device_info") // Map to existing column name
+  ip_address  String?   @map("ip_address")  // Map to existing column name
+  is_revoked  Boolean   @default(false) @map("is_revoked") // Map to existing column name
+  revoked_at  DateTime? @map("revoked_at") // Map to existing column name
+  expires_at  DateTime  @map("expires_at") // Map to existing column name
+  created_at  DateTime  @default(now()) @map("created_at") // Map to existing column name
+  updated_at  DateTime  @updatedAt @map("updated_at")     // Map to existing column name
+
+  @@index([userId])
+  @@index([token])
+  @@index([expires_at])
+  @@index([userId, is_revoked, expires_at], name: "idx_active_sessions")
+  @@map("sessions") // Map model name to existing table name
+}
+
+model AuthLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @map("user_id") // Map to existing column name
+  ip        String?  @map("ip_address") // Map to existing column name
+  userAgent String?  @db.Text @map("user_agent") // MODIFIED: Map to TEXT and existing column name
+  event     String   @map("action") // Map to existing column name (ENUM in SQL)
+  createdAt DateTime @default(now()) @map("created_at") // Map to existing column name
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("auth_logs") // Map model name to existing table name
+}
+
+enum UserStatus {
+  active
+  locked
+  suspended
+
+  @@map("status") // Map enum values to database column values if they differ
+}
