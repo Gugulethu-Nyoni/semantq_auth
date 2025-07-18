@@ -13,12 +13,14 @@ import { getCookieOptions } from '../config/cookies.js';
 // Signup
 export const signupHandler = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, ref } = req.body; // extract ref here
+
     if (!name || !email || !password) {
-      return errorResponse(res, 'All fields are required.', 400);
+      return errorResponse(res, 'All required fields are required.', 400);
     }
 
-    const { verification_token } = await signupUser({ name, email, password });
+    // Pass ref (optional) to signupUser service
+    const { verification_token } = await signupUser({ name, email, password, ref });
 
     const emailService = await emailServicePromise;
     await emailService.sendConfirmationEmail({

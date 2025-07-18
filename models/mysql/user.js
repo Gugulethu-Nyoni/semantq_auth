@@ -10,20 +10,23 @@ export const findUserByEmail = async (email) => {
   return rows[0];
 };
 
-// Create new user - MODIFIED to include role
 export const createUser = async (user) => {
+  // Use provided access_level or default to 1
+  const accessLevel = user.ref ?? 1;
+
   const [result] = await mysqlAdapter.query(
     `INSERT INTO users (name, email, password_hash, verification_token, verification_token_expires_at, access_level)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [
-      user.name || null,
-      user.email || null,
-      user.password_hash || null,
-      user.verification_token || null,
-      user.verification_token_expires_at || null,
-      user.access_level || 1 // Default to 1 (Standard User) if not provided
+      user.name ?? null,
+      user.email ?? null,
+      user.password_hash ?? null,
+      user.verification_token ?? null,
+      user.verification_token_expires_at ?? null,
+      accessLevel
     ]
   );
+
   return result.insertId;
 };
 

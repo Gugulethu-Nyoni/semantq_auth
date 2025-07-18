@@ -3,7 +3,7 @@ import models from '../models/index.js';
 import { hashPassword, comparePassword } from './password.js';
 import { generateVerificationToken, generateAuthToken, generatePasswordResetToken } from './strategies/jwt.js';
 
-export const signupUser = async ({ name, email, password, access_level = 1 }) => { // Added access_level with default
+export const signupUser = async ({ name, email, password, ref }) => {
   console.log('[signupUser] Starting signup for:', email);
 
   const existingUser = await models.findUserByEmail(email);
@@ -18,23 +18,36 @@ export const signupUser = async ({ name, email, password, access_level = 1 }) =>
   const { token, expiresAt } = generateVerificationToken({ email });
   console.log('[signupUser] Generated token:', token, 'Expires at:', expiresAt);
 
+  // Convert ref to access_level, fallback to 1 if ref is not a valid number
+  let access_level = 1;
+  if (ref !== undefined && ref !== null) {
+    const parsed = parseInt(ref, 10);
+    if (!isNaN(parsed)) {
+      access_level = parsed;
+    }
+  }
+
   const user = await models.createUser({
     name,
     email,
     password_hash,
     verification_token: token,
     verification_token_expires_at: expiresAt,
-    access_level // Pass the access_level to createUser
+    ref
   });
+
   console.log('[signupUser] User created with id:', user);
 
   return {
     verification_token: token,
     email,
     name,
-    access_level // Return access_level if needed by handler
+    access_level
   };
 };
+
+
+
 
 export const loginUser = async ({ email, password }) => {
   const user = await models.findUserByEmail(email);
