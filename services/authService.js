@@ -33,7 +33,7 @@ export const signupUser = async ({ name, email, password, ref }) => {
     password_hash,
     verification_token: token,
     verification_token_expires_at: expiresAt,
-    access_level
+    ref
   });
 
   console.log('[signupUser] User created with id:', user);
