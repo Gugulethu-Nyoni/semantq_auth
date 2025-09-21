@@ -20,7 +20,7 @@ export const signupUser = async ({ name, email, password, ref }) => {
 
   // Convert ref to access_level, fallback to 1 if ref is not a valid number
   let access_level = 1;
-  if (ref !== undefined && ref !== null) {
+  if (ref !== undefined && ref !== null && ref !== '') { // Added check for empty string
     const parsed = parseInt(ref, 10);
     if (!isNaN(parsed)) {
       access_level = parsed;
@@ -33,7 +33,7 @@ export const signupUser = async ({ name, email, password, ref }) => {
     password_hash,
     verification_token: token,
     verification_token_expires_at: expiresAt,
-    ref
+    access_level // Pass the correctly parsed integer value
   });
 
   console.log('[signupUser] User created with id:', user);
@@ -45,8 +45,6 @@ export const signupUser = async ({ name, email, password, ref }) => {
     access_level
   };
 };
-
-
 
 
 export const loginUser = async ({ email, password }) => {
