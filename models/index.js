@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 // Adjust relative path for config_loader.js.
 // Current file: semantq_server/packages/semantq_auth/models/index.js
-// Target: semantq_server/config_loader.js
+// Target: semantqQL/config_loader.js
 // Path: ../../../config_loader.js is correct.
 import loadConfigPromise from '../../../../config_loader.js';
 
@@ -15,11 +15,11 @@ const __dirname = path.dirname(__filename);
 // Await the loaded configuration (top-level await)
 const config = await loadConfigPromise;
 
-// Get the database adapter configured in semantq.config.js
+// Get the database adapter configured in server.config.js
 const adapterName = config.database?.adapter; // Use optional chaining for safety
 if (!adapterName) {
   throw new Error(
-    'No database adapter configured in semantq.config.js (loaded via config_loader). Please set `database.adapter`.'
+    'No database adapter configured in server.config.js (loaded via config_loader). Please set `database.adapter`.'
   );
 }
 
@@ -48,7 +48,7 @@ try {
   console.error(`💥 Error initializing database adapter '${adapterName}':`, error);
   // Provide more specific context for initialization errors if possible
   if (error.message.includes('URL and Key must be provided')) {
-    console.error('Please ensure SUPABASE_URL and SUPABASE_KEY are set in your .env file or semantq.config.js for the Supabase adapter.');
+    console.error('Please ensure SUPABASE_URL and SUPABASE_KEY are set in your .env file or server.config.js for the Supabase adapter.');
   }
   throw new Error(`Failed to initialize database adapter '${adapterName}': ${error.message}`);
 }
