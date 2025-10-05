@@ -56,10 +56,23 @@ export const loginUser = async ({ email, password }) => {
   const passwordValid = await comparePassword(password, user.password_hash);
   if (!passwordValid) throw new Error('Invalid email or password.');
 
-  // MODIFIED: Include user's access_level in the JWT payload
-  const token = generateAuthToken({ userId: user.id, email: user.email, access_level: user.access_level });
+  const token = generateAuthToken({ 
+    userId: user.id, 
+    email: user.email, 
+    access_level: user.access_level 
+  });
 
-  return { user: { id: user.id, email: user.email, name: user.name, access_level: user.access_level }, token }; // Return access_level
+  // Define ONLY the sensitive fields to exclude (these are auth-specific, not user model fields)
+  const sensitiveFields = ['password_hash', 'reset_token', 'reset_token_expires_at', 'verification_token', 'verification_token_expires_at'];
+  
+  // Create safe user object by excluding only sensitive auth fields
+  const safeUser = { ...user };
+  sensitiveFields.forEach(field => delete safeUser[field]);
+  
+  return { 
+    user: safeUser, 
+    token 
+  };
 };
 
 
