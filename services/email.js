@@ -52,7 +52,7 @@ export class EmailService {
   }
 
   async _initializeDriver() {
-    const config = await loadConfigPromise;
+    const config = await loadConfigPromise();
     const emailConfig = config.email || {};
     const driverType = (emailConfig.driver || 'resend').toLowerCase();
 
@@ -97,7 +97,7 @@ export class EmailService {
   async sendConfirmationEmail({ to, name, token }) {
     if (!this.driver) throw new Error("EmailService not initialized.");
 
-    const config = await loadConfigPromise;
+    const config = await loadConfigPromise();
     const { email, brand } = config;
 
     const confirmationUrl = `${brand.frontend_base_url}/auth/confirm?token=${token}`;
@@ -129,7 +129,7 @@ export class EmailService {
   async sendPasswordResetEmail({ to, name, token }) {
     if (!this.driver) throw new Error("EmailService not initialized.");
 
-    const config = await loadConfigPromise;
+    const config = await loadConfigPromise();
     const { email, brand } = config;
 
     const resetUrl = `${brand.frontend_base_url}/auth/reset?token=${token}`;

@@ -21,7 +21,7 @@ async function sendTestEmail() {
 
     const response = await resend.emails.send({
       from: fromEmail,
-      to: 'youremail@example.com', // 🔁 Replace with a valid recipient email
+      to: 'gugunnn@gmail.com', // 🔁 Replace with a valid recipient email
       subject: 'Test Email from Resend (config loaded)',
       html: '<h1>Hello!</h1><p>This is a test email sent using Resend and semantq config.</p>',
       text: 'Hello! This is a test email sent using Resend.',

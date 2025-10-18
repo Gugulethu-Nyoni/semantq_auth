@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Await the loaded configuration (top-level await)
-const config = await loadConfigPromise;
+const config = await loadConfigPromise();
 
 // Get the database adapter configured in server.config.js
 const adapterName = config.database?.adapter; // Use optional chaining for safety
