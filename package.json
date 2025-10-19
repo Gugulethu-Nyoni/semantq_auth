@@ -1,6 +1,6 @@
 {
   "name": "@semantq/auth",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Full stack (MySQL/Supabase) authentication package for Semantq JS Framework",
   "main": "index.js",
   "type": "module",
@@ -20,8 +20,8 @@
   },
   "scripts": {
     "test": "jest",
-    "start": "node ./semantq_server/server.js",
-    "dev": "nodemon ./semantq_server/server.js",
+    "start": "node ./semantqQL/server.js",
+    "dev": "nodemon ./semantqQL/server.js",
     "build": "echo \"No build step specified\" && exit 0"
   },
   "dependencies": {
