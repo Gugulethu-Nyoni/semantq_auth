@@ -74,6 +74,7 @@ export const storePasswordResetToken = async (userId, token, expiresAt) => {
 };
 
 // Find user by password reset token (and not expired)
+/*
 export const findUserByPasswordResetToken = async (token) => {
   const [rows] = await mysqlAdapter.query(
     'SELECT * FROM users WHERE reset_token = ? AND reset_token_expires_at > NOW()',
@@ -81,6 +82,17 @@ export const findUserByPasswordResetToken = async (token) => {
   );
   return rows[0];
 };
+*/
+
+// UPDATED TO: 
+export const findUserByPasswordResetToken = async (token) => {
+  const [rows] = await mysqlAdapter.query(
+    'SELECT * FROM users WHERE reset_token = ? AND reset_token_expires_at > ?',
+    [token, new Date()] // Pass current JS time instead of SQL NOW()
+  );
+  return rows[0];
+};
+
 
 // Update password and clear reset token
 export const updatePasswordAndClearResetToken = async (userId, newPasswordHash) => {
