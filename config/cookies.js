@@ -27,7 +27,7 @@ export const getCookieOptions = () => {
     httpOnly: true,
     secure: isProduction,
     // Must be 'none' for cross-site communication (front end on different domain)
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: isProduction ? 'lax' : 'lax',
     maxAge: 24 * 60 * 60 * 1000,
     path: '/',
     // *** REMOVE THE 'domain' ATTRIBUTE ***
