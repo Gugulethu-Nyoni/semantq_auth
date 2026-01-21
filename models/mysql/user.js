@@ -10,16 +10,35 @@ export const findUserByEmail = async (email) => {
   return rows[0];
 };
 
+// NEW: Find user by username
+export const findUserByUsername = async (username) => {
+  const [rows] = await mysqlAdapter.query(
+    'SELECT * FROM users WHERE username = ?',
+    [username]
+  );
+  return rows[0];
+};
+
+// NEW: Find user by email OR username (for login)
+export const findUserByEmailOrUsername = async (identifier) => {
+  const [rows] = await mysqlAdapter.query(
+    'SELECT * FROM users WHERE email = ? OR username = ?',
+    [identifier, identifier]
+  );
+  return rows[0];
+};
+
 export const createUser = async (user) => {
   // Use provided access_level or default to 1
   const accessLevel = user.ref ?? 1;
 
   const [result] = await mysqlAdapter.query(
-    `INSERT INTO users (name, email, password_hash, verification_token, verification_token_expires_at, access_level)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (name, email, username, password_hash, verification_token, verification_token_expires_at, access_level)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       user.name ?? null,
       user.email ?? null,
+      user.username ?? null, // NEW: Add username
       user.password_hash ?? null,
       user.verification_token ?? null,
       user.verification_token_expires_at ?? null,
@@ -29,7 +48,6 @@ export const createUser = async (user) => {
 
   return result.insertId;
 };
-
 
 // Find user by verification token
 export const findUserByVerificationToken = async (token) => {
@@ -56,7 +74,7 @@ export const verifyUserById = async (userId) => {
 // Find user by ID - MODIFIED to include access_level
 export const findUserById = async (id) => {
   const [rows] = await mysqlAdapter.query(
-    'SELECT id, email, name, access_level FROM users WHERE id = ?', // Include access_level
+    'SELECT id, email, username, name, access_level FROM users WHERE id = ?', // ADDED: username
     [id]
   );
   return rows[0];
@@ -74,17 +92,6 @@ export const storePasswordResetToken = async (userId, token, expiresAt) => {
 };
 
 // Find user by password reset token (and not expired)
-/*
-export const findUserByPasswordResetToken = async (token) => {
-  const [rows] = await mysqlAdapter.query(
-    'SELECT * FROM users WHERE reset_token = ? AND reset_token_expires_at > NOW()',
-    [token]
-  );
-  return rows[0];
-};
-*/
-
-// UPDATED TO: 
 export const findUserByPasswordResetToken = async (token) => {
   const [rows] = await mysqlAdapter.query(
     'SELECT * FROM users WHERE reset_token = ? AND reset_token_expires_at > ?',
@@ -92,7 +99,6 @@ export const findUserByPasswordResetToken = async (token) => {
   );
   return rows[0];
 };
-
 
 // Update password and clear reset token
 export const updatePasswordAndClearResetToken = async (userId, newPasswordHash) => {

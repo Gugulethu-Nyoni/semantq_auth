@@ -115,6 +115,8 @@ try {
 // (e.g., user.js, session.js) within this 'semantq_auth' package's model directory.
 export const {
   findUserByEmail,
+  findUserByUsername,          // NEW: For username lookup
+  findUserByEmailOrUsername,   // NEW: For login with email OR username
   createUser,
   findUserByVerificationToken,
   verifyUserById,

@@ -1,3 +1,4 @@
+// semantq_auth/controllers/authController.js
 import { signupUser, loginUser, initiatePasswordReset, resetUserPassword } from '../services/authService.js';
 import { emailServicePromise } from '../services/email.js';
 import { successResponse, errorResponse } from '../lib/utils/response.js';
@@ -9,16 +10,27 @@ const { findUserByVerificationToken, verifyUserById, findUserById } = models;
 import { getCookieOptions } from '../config/cookies.js';
 
 
-// Signup
+// Signup - UPDATED to accept username
 export const signupHandler = async (req, res) => {
  try {
-  const { name, email, password, ref } = req.body;
+  const { name, email, password, username, ref } = req.body; // ADDED: username
 
   if (!name || !email || !password) {
    return errorResponse(res, 'All required fields are required.', 400);
   }
 
-  const { verification_token } = await signupUser({ name, email, password, ref });
+  // Optional: Add username validation if needed
+  if (username) {
+    // Example: Basic username validation
+    if (username.length < 3) {
+      return errorResponse(res, 'Username must be at least 3 characters long.', 400);
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return errorResponse(res, 'Username can only contain letters, numbers, and underscores.', 400);
+    }
+  }
+
+  const { verification_token } = await signupUser({ name, email, password, username, ref }); // ADDED: username
 
   const emailService = await emailServicePromise(); // Called as a function
 
@@ -35,7 +47,7 @@ export const signupHandler = async (req, res) => {
  }
 };
 
-// Confirm Email
+// Confirm Email - UNCHANGED
 export const confirmEmailHandler = async (req, res) => {
  const { token } = req.body;
  if (!token) return errorResponse(res, 'Verification token missing.', 400);
@@ -55,24 +67,33 @@ export const confirmEmailHandler = async (req, res) => {
  }
 };
 
-// Login
+// Login - UPDATED to accept identifier (email or username)
 export const loginHandler = async (req, res) => {
  try {
-  const { email, password } = req.body;
-  if (!email || !password) return errorResponse(res, 'Email and password are required.', 400);
+  // Try to get identifier from either 'identifier' or 'email' field (backward compatibility)
+  const identifier = req.body.identifier || req.body.email;
+  const { password } = req.body;
+  
+  if (!identifier || !password) {
+    return errorResponse(res, 'Email/username and password are required.', 400);
+  }
 
-  const { user, token } = await loginUser({ email, password });
+  const { user, token } = await loginUser({ identifier, password });
   res.cookie('auth_token', token, getCookieOptions());
   return successResponse(res, 'Login successful.', { user });
 
  } catch (err) {
   console.error('[LOGIN] Error:', err);
-  if (err.message === 'Invalid email or password') return errorResponse(res, err.message, 401);
+  if (err.message.includes('Invalid email/username or password') || err.message.includes('Please verify your email')) {
+    return errorResponse(res, err.message, 401);
+  }
   return errorResponse(res, err.message || 'Login failed.', 500);
  }
 };
 
-// Validate Session
+
+
+// Validate Session - UNCHANGED
 export const validateSessionHandler = (req, res) => {
  try {
   const token = req.cookies.auth_token;
@@ -87,14 +108,23 @@ export const validateSessionHandler = (req, res) => {
  }
 };
 
-// Verify Token
+// Verify Token - UNCHANGED (but token payload now includes username)
 export const verifyTokenHandler = async (req, res) => {
  try {
   const token = req.cookies.auth_token;
   if (!token) return res.status(401).json({ success: false, message: 'No authentication token provided', code: 'MISSING_TOKEN' });
 
   const payload = jwt.verify(token, config.jwtSecret, { issuer: 'authentique', audience: 'ui-server' });
-  res.json({ success: true, data: { userId: payload.userId, email: payload.email, access_level: payload.access_level || 1, sessionValid: true } });
+  res.json({ 
+    success: true, 
+    data: { 
+      userId: payload.userId, 
+      email: payload.email, 
+      username: payload.username, // NEW: Include username in response
+      access_level: payload.access_level || 1, 
+      sessionValid: true 
+    } 
+  });
 
  } catch (err) {
   const errorType = err.name === 'TokenExpiredError' ? 'EXPIRED_TOKEN' : 'INVALID_TOKEN';
@@ -102,7 +132,7 @@ export const verifyTokenHandler = async (req, res) => {
  }
 };
 
-// Get User Profile
+// Get User Profile - UNCHANGED (but will include username from DB)
 export const getUserProfileHandler = async (req, res) => {
  try {
   const userId = req.userId;
@@ -111,7 +141,13 @@ export const getUserProfileHandler = async (req, res) => {
   const user = await findUserById(userId);
   if (!user) return errorResponse(res, 'User not found', 404);
 
-  const profile = { id: user.id, email: user.email, name: user.name, access_level: user.access_level };
+  const profile = { 
+    id: user.id, 
+    email: user.email, 
+    username: user.username, // NEW: Include username
+    name: user.name, 
+    access_level: user.access_level 
+  };
   return successResponse(res, 'User profile fetched successfully.', { profile });
 
  } catch (err) {
@@ -120,7 +156,7 @@ export const getUserProfileHandler = async (req, res) => {
  }
 };
 
-// Logout
+// Logout - UNCHANGED
 export const logoutHandler = (req, res) => {
  try {
   res.cookie('auth_token', '', { expires: new Date(0), httpOnly: true, path: '/', sameSite: 'Lax' });
@@ -131,7 +167,7 @@ export const logoutHandler = (req, res) => {
  }
 };
 
-// Forgot Password
+// Forgot Password - UNCHANGED (still email-based for security)
 export const forgotPasswordHandler = async (req, res) => {
  try {
   const { email } = req.body;
@@ -152,7 +188,7 @@ export const forgotPasswordHandler = async (req, res) => {
  }
 };
 
-// Reset Password
+// Reset Password - UNCHANGED
 export const resetPasswordHandler = async (req, res) => {
  try {
   const { token, newPassword } = req.body;

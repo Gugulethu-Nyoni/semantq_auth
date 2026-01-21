@@ -3,13 +3,23 @@ import models from '../models/index.js';
 import { hashPassword, comparePassword } from './password.js';
 import { generateVerificationToken, generateAuthToken, generatePasswordResetToken } from './strategies/jwt.js';
 
-export const signupUser = async ({ name, email, password, ref }) => {
-  console.log('[signupUser] Starting signup for:', email);
+export const signupUser = async ({ name, email, password, username, ref }) => {
+  console.log('[signupUser] Starting signup for:', email, username ? `username: ${username}` : '');
 
-  const existingUser = await models.findUserByEmail(email);
-  if (existingUser) {
+  // Check if email already exists
+  const existingUserByEmail = await models.findUserByEmail(email);
+  if (existingUserByEmail) {
     console.log('[signupUser] Email already registered:', email);
     throw new Error('Email is already registered.');
+  }
+
+  // Check if username already exists (if provided)
+  if (username) {
+    const existingUserByUsername = await models.findUserByUsername(username);
+    if (existingUserByUsername) {
+      console.log('[signupUser] Username already taken:', username);
+      throw new Error('Username is already taken.');
+    }
   }
 
   const password_hash = await hashPassword(password);
@@ -30,6 +40,7 @@ export const signupUser = async ({ name, email, password, ref }) => {
   const user = await models.createUser({
     name,
     email,
+    username, // NEW: Pass username to createUser
     password_hash,
     verification_token: token,
     verification_token_expires_at: expiresAt,
@@ -41,24 +52,26 @@ export const signupUser = async ({ name, email, password, ref }) => {
   return {
     verification_token: token,
     email,
+    username,
     name,
     access_level
   };
 };
 
-
-export const loginUser = async ({ email, password }) => {
-  const user = await models.findUserByEmail(email);
-  if (!user) throw new Error('Invalid email or password.');
+export const loginUser = async ({ identifier, password }) => { // CHANGED: email → identifier
+  // Find user by email OR username
+  const user = await models.findUserByEmailOrUsername(identifier);
+  if (!user) throw new Error('Invalid email/username or password.');
 
   if (!user.is_verified) throw new Error('Please verify your email before logging in.');
 
   const passwordValid = await comparePassword(password, user.password_hash);
-  if (!passwordValid) throw new Error('Invalid email or password.');
+  if (!passwordValid) throw new Error('Invalid email/username or password.');
 
   const token = generateAuthToken({ 
     userId: user.id, 
     email: user.email, 
+    username: user.username, // NEW: Include username in token
     access_level: user.access_level 
   });
 
@@ -74,7 +87,6 @@ export const loginUser = async ({ email, password }) => {
     token 
   };
 };
-
 
 // ✅ NEW: Initiate password reset
 export const initiatePasswordReset = async (email) => {

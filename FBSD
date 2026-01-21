@@ -1,0 +1,31 @@
+bin/
+├── init.js
+├── migrate.js
+config/
+controllers/
+lib/
+middleware/
+utils/
+LICENSE
+migrations_repo/
+├── mysql/
+├── prisma/
+└── supabase/
+models/
+├── index.js
+migrations/
+├── mysql/
+└── supabase/
+node_modules/
+package-lock.json
+package.json
+README.md
+routes/
+├── authRoutes.js
+services/
+├── authService.js
+├── email.js
+├── password.js
+├── strategies/
+└── test-email-service.js
+test-email.js
