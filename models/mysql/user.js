@@ -111,3 +111,16 @@ export const updatePasswordAndClearResetToken = async (userId, newPasswordHash) 
     [newPasswordHash, userId]
   );
 };
+
+/**
+ * Updates the last_login_at timestamp for a user
+ * @param {number} userId 
+ */
+export const updateLastLogin = async (userId) => {
+  await mysqlAdapter.query(
+    `UPDATE users 
+     SET last_login_at = CURRENT_TIMESTAMP(3) 
+     WHERE id = ?`,
+    [userId]
+  );
+};

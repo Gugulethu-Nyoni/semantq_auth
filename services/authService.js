@@ -58,28 +58,37 @@ export const signupUser = async ({ name, email, password, username, ref }) => {
   };
 };
 
-export const loginUser = async ({ identifier, password }) => { // CHANGED: email → identifier
-  // Find user by email OR username
-  const user = await models.findUserByEmailOrUsername(identifier);
-  if (!user) throw new Error('Invalid email/username or password.');
+export const loginUser = async ({ email, password }) => {
+  const user = await models.findUserByEmail(email);
+  if (!user) throw new Error('Invalid email or password.');
 
   if (!user.is_verified) throw new Error('Please verify your email before logging in.');
 
   const passwordValid = await comparePassword(password, user.password_hash);
-  if (!passwordValid) throw new Error('Invalid email/username or password.');
+  if (!passwordValid) {
+    // Optional: You might want to increment failed_login_attempts here
+    throw new Error('Invalid email or password.');
+  }
+
+  // ✅ LOG LOGIN TIME
+  // We don't necessarily need to 'await' this if we want the response to be faster,
+  // but awaiting ensures the DB is updated before the user continues.
+  await models.updateLastLogin(user.id);
 
   const token = generateAuthToken({ 
     userId: user.id, 
     email: user.email, 
-    username: user.username, // NEW: Include username in token
     access_level: user.access_level 
   });
 
-  // Define ONLY the sensitive fields to exclude (these are auth-specific, not user model fields)
   const sensitiveFields = ['password_hash', 'reset_token', 'reset_token_expires_at', 'verification_token', 'verification_token_expires_at'];
   
-  // Create safe user object by excluding only sensitive auth fields
   const safeUser = { ...user };
+  // Note: safeUser.last_login_at will still show the PREVIOUS login time 
+  // because 'user' was fetched from the DB before the update.
+  // If you need the fresh timestamp in the response, manually set it:
+  safeUser.last_login_at = new Date(); 
+
   sensitiveFields.forEach(field => delete safeUser[field]);
   
   return { 
@@ -87,6 +96,9 @@ export const loginUser = async ({ identifier, password }) => { // CHANGED: email
     token 
   };
 };
+
+
+
 
 // ✅ NEW: Initiate password reset
 export const initiatePasswordReset = async (email) => {
