@@ -7,41 +7,66 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Authentication Models (Existing)
 model User {
-  id                            Int          @id @default(autoincrement())
-  access_level                  Int          @default(1)
+  id                            Int           @id @default(autoincrement())
+  access_level                  Int           @default(1)
+  product_package               String?       @default("a")
   name                          String?
   surname                       String?
-  email                         String       @unique
-  username                      String?      @unique
+  mobile                        String?
+  email                         String        @unique
+  username                      String?       @unique
   password_hash                 String
-  is_verified                   Boolean      @default(false)
-  verification_token            String?      @db.VarChar(512)
+  is_verified                   Boolean       @default(false)
+  verification_token            String?       @db.VarChar(512)
   verification_token_expires_at DateTime?
-  reset_token                   String?      @db.VarChar(512)
+  reset_token                   String?       @db.VarChar(512)
   reset_token_expires_at        DateTime?
   last_login_at                 DateTime?
-  failed_login_attempts         Int          @default(0)
-  status                        UserStatus   @default(active)
-  createdAt                     DateTime     @default(now()) @map("created_at")
-  updatedAt                     DateTime     @default(now()) @updatedAt @map("updated_at")
+  failed_login_attempts         Int           @default(0)
+  status                        UserStatus    @default(inactive)
+  createdAt                     DateTime      @default(now()) @map("created_at")
+  updatedAt                     DateTime      @default(now()) @updatedAt @map("updated_at")
+  stage                         Int           @default(0)
   
-  // Existing Auth Relationships
   sessions                      Session[]
   authLogs                      AuthLog[]
-  subscriptions                 Subscription[]
   
-  // New Survey Platform Relationships
-  profile                       UserProfile?
-  surveys                       Survey[]
-  responses                     Response[]
-  teamMembers                   TeamMember[]
-  payments                      Payment[]
-  files                         FileUpload[]
+  // The Organization this user belongs to (Staff/Member)
+  organizationId                Int?
+  organization                  Organization? @relation("OrganizationMembers", fields: [organizationId], references: [id])
+
+  // The Organization this user created/owns
+  ownedOrganization             Organization? @relation("OrganizationOwner")
 
   @@map("users")
 }
+
+model Organization {
+  id               Int            @id @default(autoincrement())
+  name             String
+  
+  // The Single Owner of the Org
+  ownerId          Int            @unique
+  owner            User           @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  
+  // All Users (including the owner, if desired) belonging to this Org
+  members          User[]         @relation("OrganizationMembers")
+
+  pricingPackageId Int
+  pricingPackage   PricingPackage @relation(fields: [pricingPackageId], references: [id], onDelete: Cascade)
+  
+  settings         Json?          // For currency, regional preferences, manual mode toggles
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  // Logistics & Features
+  //apiKeys          ApiKey[]
+
+  @@map("organizations")
+}
+
+
 
 model Session {
   id          Int       @id @default(autoincrement())
@@ -71,242 +96,24 @@ model AuthLog {
   userAgent String?  @db.Text @map("user_agent")
   event     String   @map("action")
   createdAt DateTime @default(now()) @map("created_at")
-
   @@index([userId])
   @@index([createdAt])
   @@map("auth_logs")
 }
 
 enum UserStatus {
+  inactive
   active
   locked
   suspended
+
   @@map("status")
 }
 
-// New Survey Platform Models
-model UserProfile {
-  id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int      @unique
-  title       String?  // Dr., Prof., etc.
-  institution String?
-  department  String?
-  address     Json?
-  phone       String?
-  avatarUrl   String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+enum PayoutStatus {
+  pending
+  paid
+  failed
 
-  @@map("user_profiles")
-}
-
-model Survey {
-  id           Int        @id @default(autoincrement())
-  title        String
-  description  String?
-  referenceUrl String?
-  isActive     Boolean    @default(true)
-  isPublic     Boolean    @default(false)
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-  closesAt     DateTime?  @map("closes_at")
-  
-  // Relationships
-  user        User       @relation(fields: [userId], references: [id])
-  userId      Int
-  questions   Question[]
-  responses   Response[]
-  settings    SurveySettings?
-  teamMembers TeamMember[]
-  files       FileUpload[]
-
-  @@index([userId])
-  @@index([isActive])
-  @@map("surveys")
-}
-
-model SurveySettings {
-  id               Int      @id @default(autoincrement())
-  survey           Survey   @relation(fields: [surveyId], references: [id])
-  surveyId         Int      @unique
-  isAnonymous      Boolean  @default(true) @map("is_anonymous")
-  allowMultiple    Boolean  @default(false) @map("allow_multiple")
-  requireLogin     Boolean  @default(false) @map("require_login")
-  enableIpCheck    Boolean  @default(true) @map("enable_ip_check")
-  showProgress     Boolean  @default(true) @map("show_progress")
-  showResults      Boolean  @default(false) @map("show_results")
-  customCss        String?  @map("custom_css")
-  welcomeMessage   String?  @map("welcome_message")
-  completionMessage String? @map("completion_message")
-  redirectUrl      String?  @map("redirect_url")
-  createdAt        DateTime @default(now()) @map("created_at")
-
-  @@map("survey_settings")
-}
-
-model Question {
-  id          Int      @id @default(autoincrement())
-  survey      Survey   @relation(fields: [surveyId], references: [id])
-  surveyId    Int
-  order       Int
-  title       String
-  description String?
-  type        QuestionType
-  isRequired  Boolean  @default(true) @map("is_required")
-  options     Json?
-  validation  Json?
-  logic       Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-  
-  // Relationships
-  responses   Response[]
-  files       FileUpload[]
-
-  @@index([surveyId])
-  @@map("questions")
-}
-
-enum QuestionType {
-  SHORT_TEXT     @map("short_text")
-  LONG_TEXT      @map("long_text")
-  MULTIPLE_CHOICE @map("multiple_choice")
-  CHECKBOX       @map("checkbox")
-  DROPDOWN       @map("dropdown")
-  LINEAR_SCALE   @map("linear_scale")
-  STAR_RATING    @map("star_rating")
-  DATE           @map("date")
-  FILE_UPLOAD    @map("file_upload")
-  MATRIX         @map("matrix")
-}
-
-model Response {
-  id          Int      @id @default(autoincrement())
-  survey      Survey   @relation(fields: [surveyId], references: [id])
-  surveyId    Int
-  question    Question @relation(fields: [questionId], references: [id])
-  questionId  Int
-  user        User?    @relation(fields: [userId], references: [id])
-  userId      Int?
-  sessionId   String?  @map("session_id")
-  ipHash      String?  @map("ip_hash")
-  answer      Json
-  metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([surveyId])
-  @@index([questionId])
-  @@index([userId])
-  @@index([ipHash])
-  @@index([sessionId])
-  @@map("responses")
-}
-
-model TeamMember {
-  id        Int      @id @default(autoincrement())
-  survey    Survey   @relation(fields: [surveyId], references: [id])
-  surveyId  Int
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  role      TeamRole @default(EDITOR)
-  invitedAt DateTime @default(now()) @map("invited_at")
-  joinedAt  DateTime? @map("joined_at")
-  
-  @@unique([surveyId, userId])
-  @@map("team_members")
-}
-
-enum TeamRole {
-  VIEWER  @map("viewer")
-  EDITOR  @map("editor")
-  ADMIN   @map("admin")
-}
-
-model Payment {
-  id           Int      @id @default(autoincrement())
-  user         User     @relation(fields: [userId], references: [id])
-  userId       Int
-  amount       Float
-  currency     String   @default("USD")
-  status       PaymentStatus @default(PENDING)
-  gateway      String
-  gatewayId    String?  @map("gateway_id")
-  invoiceId    String?  @map("invoice_id")
-  description  String?
-  metadata     Json?
-  createdAt    DateTime @default(now()) @map("created_at")
-  processedAt  DateTime? @map("processed_at")
-
-  @@index([userId])
-  @@index([status])
-  @@index([gatewayId])
-  @@map("payments")
-}
-
-enum PaymentStatus {
-  PENDING   @map("pending")
-  COMPLETED @map("completed")
-  FAILED    @map("failed")
-  REFUNDED  @map("refunded")
-}
-
-model Subscription {
-  id                   Int       @id @default(autoincrement())
-  user                 User      @relation(fields: [userId], references: [id])
-  userId               Int
-  planId               String    @map("plan_id")
-  status               SubscriptionStatus @default(ACTIVE)
-  currentPeriodStart   DateTime  @map("current_period_start")
-  currentPeriodEnd     DateTime  @map("current_period_end")
-  cancelAt             DateTime? @map("cancel_at")
-  gateway              String
-  gatewayId            String    @map("gateway_id")
-  metadata             Json?
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-
-  @@index([userId])
-  @@index([status])
-  @@index([gatewayId])
-  @@map("subscriptions")
-}
-
-enum SubscriptionStatus {
-  ACTIVE   @map("active")
-  CANCELED @map("canceled")
-  PAST_DUE @map("past_due")
-  PAUSED   @map("paused")
-}
-
-model FileUpload {
-  id          Int       @id @default(autoincrement())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      Int
-  survey      Survey?   @relation(fields: [surveyId], references: [id])
-  surveyId    Int?
-  question    Question? @relation(fields: [questionId], references: [id])
-  questionId  Int?
-  filename    String
-  path        String
-  mimeType    String    @map("mime_type")
-  size        Int
-  isPublic    Boolean   @default(false) @map("is_public")
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@index([surveyId])
-  @@index([questionId])
-  @@map("file_uploads")
-}
-
-model SystemSettings {
-  id           Int      @id @default(autoincrement())
-  settingKey   String   @unique @map("setting_key")
-  settingValue Json     @map("setting_value")
-  description  String?
-  isPublic     Boolean  @default(false) @map("is_public")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  updatedBy    Int?     @map("updated_by")
-
-  @@map("system_settings")
+  @@map("payout_status")
 }
