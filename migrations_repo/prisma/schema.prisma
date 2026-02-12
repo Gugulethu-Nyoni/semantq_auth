@@ -10,7 +10,6 @@ datasource db {
 model User {
   id                            Int           @id @default(autoincrement())
   access_level                  Int           @default(1)
-  product_package               String?       @default("a")
   name                          String?
   surname                       String?
   mobile                        String?
@@ -28,41 +27,32 @@ model User {
   createdAt                     DateTime      @default(now()) @map("created_at")
   updatedAt                     DateTime      @default(now()) @updatedAt @map("updated_at")
   stage                         Int           @default(0)
-  
   sessions                      Session[]
   authLogs                      AuthLog[]
-  
   // The Organization this user belongs to (Staff/Member)
   organizationId                Int?
   organization                  Organization? @relation("OrganizationMembers", fields: [organizationId], references: [id])
-
   // The Organization this user created/owns
   ownedOrganization             Organization? @relation("OrganizationOwner")
-
   @@map("users")
 }
+
 
 model Organization {
   id               Int            @id @default(autoincrement())
   name             String
-  
   // The Single Owner of the Org
   ownerId          Int            @unique
   owner            User           @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  
   // All Users (including the owner, if desired) belonging to this Org
   members          User[]         @relation("OrganizationMembers")
-
   pricingPackageId Int
   pricingPackage   PricingPackage @relation(fields: [pricingPackageId], references: [id], onDelete: Cascade)
-  
   settings         Json?          // For currency, regional preferences, manual mode toggles
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  
   // Logistics & Features
   //apiKeys          ApiKey[]
-
   @@map("organizations")
 }
 
@@ -80,7 +70,6 @@ model Session {
   expires_at  DateTime  @map("expires_at")
   created_at  DateTime  @default(now()) @map("created_at")
   updated_at  DateTime  @updatedAt @map("updated_at")
-
   @@index([userId])
   @@index([token])
   @@index([expires_at])
@@ -114,6 +103,5 @@ enum PayoutStatus {
   pending
   paid
   failed
-
   @@map("payout_status")
 }
