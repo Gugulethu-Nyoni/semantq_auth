@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/////////////////////
+// AUTH MODELS
+/////////////////////
+
+model User {
+  id                            Int       @id @default(autoincrement())
+  access_level                  Int       @default(1) 
+  name                          String?
+  surname                       String?
+  email                         String    @unique
+  username                      String?
+  password_hash                 String
+  is_verified                   Boolean   @default(false)
+  verification_token            String?   
+  verification_token_expires_at DateTime?
+  reset_token                   String?   
+  reset_token_expires_at        DateTime?
+  last_login_at                 DateTime?
+  failed_login_attempts         Int       @default(0)
+  status                        UserStatus @default(active)
+  createdAt                     DateTime  @default(now()) 
+  updatedAt                     DateTime  @default(now()) @updatedAt
+
+  sessions                      Session[]
+  authLogs                      AuthLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int       
+  token       String    @unique
+  device_info String?   
+  ip_address  String?   
+  is_revoked  Boolean   @default(false)
+  revoked_at  DateTime? 
+  expires_at  DateTime  
+  created_at  DateTime  @default(now()) 
+  updated_at  DateTime  @updatedAt 
+
+  @@index([userId])
+  @@index([token])
+  @@index([expires_at])
+  @@index([userId, is_revoked, expires_at], name: "idx_active_sessions")
+  @@map("sessions")
+}
+
+model AuthLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      
+  ip        String?  
+  userAgent String?  @db.Text
+  event     String   
+  createdAt DateTime @default(now()) 
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("auth_logs")
+}
+
+enum UserStatus {
+  active
+  locked
+  suspended
+}
+
+
