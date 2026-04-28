@@ -13,15 +13,13 @@ import { getCookieOptions } from '../config/cookies.js';
 // Signup - UPDATED to accept username
 export const signupHandler = async (req, res) => {
  try {
-  const { name, email, password, username, ref } = req.body; // ADDED: username
+  const { name, email, password, username, ref } = req.body;
 
   if (!name || !email || !password) {
    return errorResponse(res, 'All required fields are required.', 400);
   }
 
-  // Optional: Add username validation if needed
   if (username) {
-    // Example: Basic username validation
     if (username.length < 3) {
       return errorResponse(res, 'Username must be at least 3 characters long.', 400);
     }
@@ -30,9 +28,9 @@ export const signupHandler = async (req, res) => {
     }
   }
 
-  const { verification_token } = await signupUser({ name, email, password, username, ref }); // ADDED: username
+  const { verification_token } = await signupUser({ name, email, password, username, ref });
 
-  const emailService = await emailServicePromise(); // Called as a function
+  const emailService = await emailServicePromise();
 
   await emailService.sendConfirmationEmail({ to: email, name, token: verification_token });
 
@@ -47,7 +45,7 @@ export const signupHandler = async (req, res) => {
  }
 };
 
-// Confirm Email - UNCHANGED
+// Confirm Email
 export const confirmEmailHandler = async (req, res) => {
  const { token } = req.body;
  if (!token) return errorResponse(res, 'Verification token missing.', 400);
@@ -70,7 +68,6 @@ export const confirmEmailHandler = async (req, res) => {
 // Login - UPDATED to accept identifier (email or username)
 export const loginHandler = async (req, res) => {
  try {
-  // Try to get identifier from either 'identifier' or 'email' field (backward compatibility)
   const identifier = req.body.identifier || req.body.email;
   const { password } = req.body;
   
@@ -91,16 +88,21 @@ export const loginHandler = async (req, res) => {
  }
 };
 
-
-
-// Validate Session - UNCHANGED
+// Validate Session
 export const validateSessionHandler = (req, res) => {
  try {
   const token = req.cookies.auth_token;
   if (!token) return errorResponse(res, 'No session token', 401);
 
   const payload = jwt.verify(token, config.jwtSecret, { issuer: 'authentique', audience: 'ui-server' });
-  return successResponse(res, 'Session valid', { valid: true, access_level: payload.access_level });
+  
+  return successResponse(res, 'Session valid', { 
+    valid: true, 
+    userId: payload.userId,
+    email: payload.email,
+    username: payload.username,
+    access_level: payload.access_level 
+  });
 
  } catch (err) {
   console.error('[VALIDATE SESSION] Error:', err);
@@ -108,7 +110,7 @@ export const validateSessionHandler = (req, res) => {
  }
 };
 
-// Verify Token - UNCHANGED (but token payload now includes username)
+// Verify Token
 export const verifyTokenHandler = async (req, res) => {
  try {
   const token = req.cookies.auth_token;
@@ -120,7 +122,7 @@ export const verifyTokenHandler = async (req, res) => {
     data: { 
       userId: payload.userId, 
       email: payload.email, 
-      username: payload.username, // NEW: Include username in response
+      username: payload.username,
       access_level: payload.access_level || 1, 
       sessionValid: true 
     } 
@@ -132,7 +134,7 @@ export const verifyTokenHandler = async (req, res) => {
  }
 };
 
-// Get User Profile - UNCHANGED (but will include username from DB)
+// Get User Profile
 export const getUserProfileHandler = async (req, res) => {
  try {
   const userId = req.userId;
@@ -144,7 +146,7 @@ export const getUserProfileHandler = async (req, res) => {
   const profile = { 
     id: user.id, 
     email: user.email, 
-    username: user.username, // NEW: Include username
+    username: user.username,
     name: user.name, 
     access_level: user.access_level 
   };
@@ -156,7 +158,7 @@ export const getUserProfileHandler = async (req, res) => {
  }
 };
 
-// Logout - UNCHANGED
+// Logout
 export const logoutHandler = (req, res) => {
  try {
   res.cookie('auth_token', '', { expires: new Date(0), httpOnly: true, path: '/', sameSite: 'Lax' });
@@ -167,7 +169,7 @@ export const logoutHandler = (req, res) => {
  }
 };
 
-// Forgot Password - UNCHANGED (still email-based for security)
+// Forgot Password
 export const forgotPasswordHandler = async (req, res) => {
  try {
   const { email } = req.body;
@@ -176,7 +178,7 @@ export const forgotPasswordHandler = async (req, res) => {
   const { name, token } = await initiatePasswordReset(email);
 
   if (token) {
-   const emailService = await emailServicePromise(); // ✅ FIXED
+   const emailService = await emailServicePromise();
    await emailService.sendPasswordResetEmail({ to: email, name, token });
   }
 
@@ -188,7 +190,7 @@ export const forgotPasswordHandler = async (req, res) => {
  }
 };
 
-// Reset Password - UNCHANGED
+// Reset Password
 export const resetPasswordHandler = async (req, res) => {
  try {
   const { token, newPassword } = req.body;
@@ -203,4 +205,4 @@ export const resetPasswordHandler = async (req, res) => {
  }
 };
 
-console.log('✅ [AUTH CONTROLLER] All handlers loaded');
+console.log('[AUTH CONTROLLER] All handlers loaded');
