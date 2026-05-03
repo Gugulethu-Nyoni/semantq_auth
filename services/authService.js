@@ -30,7 +30,7 @@ export const signupUser = async ({ name, email, password, username, ref }) => {
 
   // Convert ref to access_level, fallback to 1 if ref is not a valid number
   let access_level = 1;
-  if (ref !== undefined && ref !== null && ref !== '') { // Added check for empty string
+  if (ref !== undefined && ref !== null && ref !== '') {
     const parsed = parseInt(ref, 10);
     if (!isNaN(parsed)) {
       access_level = parsed;
@@ -40,11 +40,11 @@ export const signupUser = async ({ name, email, password, username, ref }) => {
   const user = await models.createUser({
     name,
     email,
-    username, // NEW: Pass username to createUser
+    username,
     password_hash,
     verification_token: token,
     verification_token_expires_at: expiresAt,
-    access_level // Pass the correctly parsed integer value
+    access_level
   });
 
   console.log('[signupUser] User created with id:', user);
@@ -58,37 +58,28 @@ export const signupUser = async ({ name, email, password, username, ref }) => {
   };
 };
 
-export const loginUser = async ({ email, password }) => {
-  const user = await models.findUserByEmail(email);
-  if (!user) throw new Error('Invalid email or password.');
+export const loginUser = async ({ identifier, password }) => {
+  // Find user by email OR username
+  const user = await models.findUserByEmailOrUsername(identifier);
+  if (!user) throw new Error('Invalid email/username or password.');
 
   if (!user.is_verified) throw new Error('Please verify your email before logging in.');
 
   const passwordValid = await comparePassword(password, user.password_hash);
-  if (!passwordValid) {
-    // Optional: You might want to increment failed_login_attempts here
-    throw new Error('Invalid email or password.');
-  }
-
-  // ✅ LOG LOGIN TIME
-  // We don't necessarily need to 'await' this if we want the response to be faster,
-  // but awaiting ensures the DB is updated before the user continues.
-  await models.updateLastLogin(user.id);
+  if (!passwordValid) throw new Error('Invalid email/username or password.');
 
   const token = generateAuthToken({ 
     userId: user.id, 
     email: user.email, 
+    username: user.username,
     access_level: user.access_level 
   });
 
+  // Define ONLY the sensitive fields to exclude (these are auth-specific, not user model fields)
   const sensitiveFields = ['password_hash', 'reset_token', 'reset_token_expires_at', 'verification_token', 'verification_token_expires_at'];
   
+  // Create safe user object by excluding only sensitive auth fields
   const safeUser = { ...user };
-  // Note: safeUser.last_login_at will still show the PREVIOUS login time 
-  // because 'user' was fetched from the DB before the update.
-  // If you need the fresh timestamp in the response, manually set it:
-  safeUser.last_login_at = new Date(); 
-
   sensitiveFields.forEach(field => delete safeUser[field]);
   
   return { 
@@ -97,12 +88,8 @@ export const loginUser = async ({ email, password }) => {
   };
 };
 
-
-
-
-// ✅ NEW: Initiate password reset
+// Initiate password reset
 export const initiatePasswordReset = async (email) => {
-  // FIX: Call findUserByEmail directly on the 'models' object
   const user = await models.findUserByEmail(email);
   if (!user) {
     // For security, do not reveal if the email is not registered.
@@ -113,15 +100,13 @@ export const initiatePasswordReset = async (email) => {
 
   const { token, expiresAt } = generatePasswordResetToken({ userId: user.id });
 
-  // FIX: Call storePasswordResetToken directly on the 'models' object
   await models.storePasswordResetToken(user.id, token, expiresAt);
 
   return { email: user.email, name: user.name || 'User', token };
 };
 
-// ✅ NEW: Complete password reset
+// Complete password reset
 export const resetUserPassword = async (token, newPassword) => {
-  // FIX: Call findUserByPasswordResetToken directly on the 'models' object
   const user = await models.findUserByPasswordResetToken(token);
 
   if (!user) {
@@ -129,7 +114,6 @@ export const resetUserPassword = async (token, newPassword) => {
   }
 
   const newPasswordHash = await hashPassword(newPassword);
-  // FIX: Call updatePasswordAndClearResetToken directly on the 'models' object
   await models.updatePasswordAndClearResetToken(user.id, newPasswordHash);
 
   return { userId: user.id, email: user.email };

@@ -102,7 +102,7 @@ try {
     console.error(
       `💥 Error: Models directory not found for adapter '${adapterName}' at ${modelsDir}`
     );
-    console.error('Please ensure the adapter directory (e.g., `semantq_auth/models/supabase/`) and model files (e.g., `user.js`) exist within your `semantq_auth` package.');
+    console.error('Please ensure the adapter directory (e.g., `@semantq/auth/models/supabase/`) and model files (e.g., `user.js`) exist within your `semantq_auth` package.');
   } else {
     console.error(`💥 Error loading models for adapter '${adapterName}':`, error);
   }
