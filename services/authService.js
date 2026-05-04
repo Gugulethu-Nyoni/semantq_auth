@@ -2,8 +2,9 @@
 import models from '../models/index.js';
 import { hashPassword, comparePassword } from './password.js';
 import { generateVerificationToken, generateAuthToken, generatePasswordResetToken } from './strategies/jwt.js';
+import { emailServicePromise } from './email.js';
 
-export const signupUser = async ({ name, email, password, username, ref }) => {
+export const signupUser = async ({ name, email, password, username, ref, sendEmail = true }) => {
   console.log('[signupUser] Starting signup for:', email, username ? `username: ${username}` : '');
 
   // Check if email already exists
@@ -48,6 +49,18 @@ export const signupUser = async ({ name, email, password, username, ref }) => {
   });
 
   console.log('[signupUser] User created with id:', user);
+
+  // Send email verification (unless explicitly disabled)
+  if (sendEmail) {
+    try {
+      const emailService = await emailServicePromise();
+      await emailService.sendConfirmationEmail({ to: email, name, token });
+      console.log('[signupUser] Verification email sent to:', email);
+    } catch (emailError) {
+      console.error('[signupUser] Failed to send verification email:', emailError);
+      // Don't throw - user is still created, just log the error
+    }
+  }
 
   return {
     verification_token: token,

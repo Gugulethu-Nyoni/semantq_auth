@@ -1,6 +1,5 @@
 // semantq_auth/controllers/authController.js
 import { signupUser, loginUser, initiatePasswordReset, resetUserPassword } from '../services/authService.js';
-import { emailServicePromise } from '../services/email.js';
 import { successResponse, errorResponse } from '../lib/utils/response.js';
 import jwt from 'jsonwebtoken';
 import config from '../config/auth.js';
@@ -10,7 +9,7 @@ const { findUserByVerificationToken, verifyUserById, findUserById } = models;
 import { getCookieOptions } from '../config/cookies.js';
 
 
-// Signup - UPDATED to accept username
+// Signup - UPDATED to accept username (email is sent inside signupUser service)
 export const signupHandler = async (req, res) => {
  try {
   const { name, email, password, username, ref } = req.body;
@@ -28,18 +27,13 @@ export const signupHandler = async (req, res) => {
     }
   }
 
-  const { verification_token } = await signupUser({ name, email, password, username, ref });
-
-  const emailService = await emailServicePromise();
-
-  await emailService.sendConfirmationEmail({ to: email, name, token: verification_token });
+  const { verification_token } = await signupUser({ name, email, password, username, ref, sendEmail: true });
 
   return successResponse(res, 'Account created. Please check your email to verify.', { token: verification_token });
 
  } catch (err) {
   console.error('Signup error:', err);
   
-  // Return specific error messages to frontend
   let errorMessage = err.message;
   let statusCode = 500;
   
