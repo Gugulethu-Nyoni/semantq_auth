@@ -4,7 +4,7 @@ import config from '../../config/auth.js';
 
 // Define default expiry times if not specified in config
 const JWT_SECRET = config.jwtSecret;
-const TOKEN_EXPIRY_AUTH = config.tokenExpiryAuth || '1h'; // Default to 1 hour for auth token
+const TOKEN_EXPIRY_AUTH = config.tokenExpiryAuth || '24h'; // Changed from '1h' to '24h' to match cookie maxAge
 const TOKEN_EXPIRY_VERIFICATION = config.tokenExpiryVerification || '24h'; // Default to 24 hours for verification
 const TOKEN_EXPIRY_PASSWORD_RESET = config.tokenExpiryPasswordReset || '1h'; // Default to 1 hour for password reset
 

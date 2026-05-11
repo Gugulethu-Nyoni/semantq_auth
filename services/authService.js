@@ -85,21 +85,32 @@ export const loginUser = async ({ identifier, password }) => {
     userId: user.id, 
     email: user.email, 
     username: user.username,
-    access_level: user.access_level 
-  });
+    access_level: user.access_level,
+    role: user.role  
+});
 
-  // Define ONLY the sensitive fields to exclude (these are auth-specific, not user model fields)
+  // Define sensitive fields to exclude
   const sensitiveFields = ['password_hash', 'reset_token', 'reset_token_expires_at', 'verification_token', 'verification_token_expires_at'];
   
-  // Create safe user object by excluding only sensitive auth fields
-  const safeUser = { ...user };
-  sensitiveFields.forEach(field => delete safeUser[field]);
+  // Create safe user object including name and surname
+  const safeUser = { 
+    id: user.id,
+    name: user.name,
+    surname: user.surname,
+    email: user.email,
+    username: user.username,
+    access_level: user.access_level,
+    role: user.role,
+    organizationId: user.organizationId,
+    is_verified: user.is_verified
+};
   
   return { 
     user: safeUser, 
     token 
   };
 };
+
 
 // Initiate password reset
 export const initiatePasswordReset = async (email) => {

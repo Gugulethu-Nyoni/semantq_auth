@@ -15,8 +15,8 @@ export default {
     supportEmail: process.env.BRAND_SUPPORT_EMAIL || 'support@example.com'
   },
   database: {
-    adapter: 'mysql',
-    config: databaseConfig['mysql']
+    adapter: 'postgresql',
+    config: databaseConfig['postgresql']
   },
   email: {
     provider: 'Resend',

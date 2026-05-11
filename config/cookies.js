@@ -28,7 +28,8 @@ export const getCookieOptions = () => {
     secure: isProduction,
     // Must be 'none' for cross-site communication (front end on different domain)
     sameSite: isProduction ? 'lax' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000,
+    //maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days
     path: '/',
     // *** REMOVE THE 'domain' ATTRIBUTE ***
     // The browser defaults to the host (your server's host, e.g., api.onrender.com)

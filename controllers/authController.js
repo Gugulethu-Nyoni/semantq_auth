@@ -102,44 +102,6 @@ export const loginHandler = async (req, res) => {
  }
 };
 
-// Validate Session
-export const validateSessionHandler = async (req, res) => {
- try {
-  const token = req.cookies.auth_token;
-  if (!token) return errorResponse(res, 'No active session found. Please login.', 401);
-
-  const payload = jwt.verify(token, config.jwtSecret, { issuer: 'authentique', audience: 'ui-server' });
-  
-  let organizationId = null;
-  
-  try {
-    if (typeof findUserById === 'function') {
-      const user = await findUserById(payload.userId);
-      organizationId = user?.organizationId || null;
-    }
-  } catch (err) {
-    console.log('[VALIDATE SESSION] Organization ID fetch skipped or failed:', err.message);
-  }
-  
-  return successResponse(res, 'Session valid', { 
-    valid: true, 
-    userId: payload.userId,
-    email: payload.email,
-    username: payload.username,
-    access_level: payload.access_level,
-    organizationId: organizationId 
-  });
-
- } catch (err) {
-  console.error('[VALIDATE SESSION] Error:', err);
-  
-  if (err.name === 'TokenExpiredError') {
-    return errorResponse(res, 'Your session has expired. Please login again.', 401);
-  }
-  return errorResponse(res, 'Invalid session. Please login again.', 401);
- }
-};
-
 // Verify Token
 export const verifyTokenHandler = async (req, res) => {
  try {
@@ -166,6 +128,49 @@ export const verifyTokenHandler = async (req, res) => {
 };
 
 // Get User Profile
+// Validate Session - Add surname
+export const validateSessionHandler = async (req, res) => {
+ try {
+  const token = req.cookies.auth_token;
+  if (!token) return errorResponse(res, 'No active session found. Please login.', 401);
+
+  const payload = jwt.verify(token, config.jwtSecret, { issuer: 'authentique', audience: 'ui-server' });
+  
+  let organizationId = null;
+  let userData = null;
+  
+  try {
+    if (typeof findUserById === 'function') {
+      userData = await findUserById(payload.userId);
+      organizationId = userData?.organizationId || null;
+    }
+  } catch (err) {
+    console.log('[VALIDATE SESSION] Organization ID fetch skipped or failed:', err.message);
+  }
+  
+  return successResponse(res, 'Session valid', { 
+    valid: true, 
+    userId: payload.userId,
+    email: payload.email,
+    username: payload.username,
+    name: userData?.name || payload.username,
+    surname: userData?.surname || '',
+    access_level: payload.access_level,
+    role: userData?.role || null,
+    organizationId: organizationId 
+});
+
+ } catch (err) {
+  console.error('[VALIDATE SESSION] Error:', err);
+  
+  if (err.name === 'TokenExpiredError') {
+    return errorResponse(res, 'Your session has expired. Please login again.', 401);
+  }
+  return errorResponse(res, 'Invalid session. Please login again.', 401);
+ }
+};
+
+// Get User Profile - Add surname
 export const getUserProfileHandler = async (req, res) => {
  try {
   const userId = req.userId;
@@ -178,7 +183,8 @@ export const getUserProfileHandler = async (req, res) => {
     id: user.id, 
     email: user.email, 
     username: user.username,
-    name: user.name, 
+    name: user.name,
+    surname: user.surname,
     access_level: user.access_level 
   };
   return successResponse(res, 'User profile fetched successfully.', { profile });

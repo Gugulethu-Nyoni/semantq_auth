@@ -72,7 +72,7 @@ export const verifyUserById = async (userId) => {
 
 // Find user by ID - MODIFIED to include role
 // Find user by ID - MODIFIED to include access_level
-export const findUserById = async (id) => {
+export const findUserByIdDDDD = async (id) => {
   const [rows] = await mysqlAdapter.query(
     'SELECT id, email, username, name, access_level FROM users WHERE id = ?', // ADDED: username
     [id]

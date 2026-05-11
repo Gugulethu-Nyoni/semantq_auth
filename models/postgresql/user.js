@@ -84,9 +84,11 @@ export const verifyUserById = async (userId) => {
 };
 
 // Find user by ID
+// In auth model (postgresql.js) - update findUserById
+
 export const findUserById = async (id) => {
   const [rows] = await postgresAdapter.query(
-    'SELECT id, email, username, name, access_level, "organizationId" FROM users WHERE id = $1',
+    'SELECT id, email, username, name, surname, access_level, role, "organizationId" FROM users WHERE id = $1',
     [id]
   );
   return rows[0];
