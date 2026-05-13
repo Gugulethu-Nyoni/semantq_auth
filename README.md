@@ -6,3 +6,4 @@ ToDos
 Add Google Auth
 Add Guthub Auth
 Add LinkedinAuth
+Complete the read me
