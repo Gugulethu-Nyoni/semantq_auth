@@ -334,9 +334,78 @@ The SemantqQL CLI will automatically detect and mount routes from the `packages`
 | POST | `/auth/confirm/:token` | Confirm email address |
 | POST | `/auth/forgot-password` | Request password reset |
 | POST | `/auth/reset-password/:token` | Reset password |
-| GET | `/auth/me` | Get current user session |
 
 
+## Important Notes
+
+### Auth Schema vs SaaS Integration Schema
+
+The `@semantq/auth` module ships with two distinct schema variants:
+
+| Variant | Location | Description |
+|---------|----------|-------------|
+| Standalone Auth Schema | `prisma/postgres/schema.prisma`, `prisma/mysql/schema.prisma`, `prisma/supabase/schema.prisma` | Complete auth schema that works out of the box. No Pylon models or relations are present. |
+| SaaS Integration Schema | `prisma/postgres/saas/schema.prisma`, `prisma/mysql/saas/schema.prisma`, `prisma/supabase/saas/schema.prisma` | Auth schema extended with Pylon Organization model. Includes organizationId field and relations on the User model. |
+
+### Standalone Auth Schema (Default)
+
+The standalone auth schema includes:
+- `User` model with core auth fields (email, password_hash, verification tokens, etc.)
+- `Session` model for session management
+- `AuthLog` model for audit logging
+- `UserStatus` enum
+
+No Pylon-related models (`Organization`, `UserRole`, `Role`) are present. The schema works immediately after installation without any manual removal of fields or relations.
+
+### SaaS Integration Schema
+
+For developers building multi-tenant SaaS applications with `@semantq/pylon`:
+
+The SaaS integration schema adds:
+- `organizationId` field on the `User` model
+- `ownedOrganization` and `organization` relations on the `User` model
+- `Organization` model (minimal exposure - see Pylon documentation for full details)
+
+Developers should use this schema **only if** they are also using `@semantq/pylon`. For comprehensive documentation on organization management, role-based access control, feature metering, and permission guards, refer to the Pylon documentation.
+
+### Pylon Documentation
+
+The SaaS integration schema shown in this document exposes only the Organization model with basic fields. `@semantq/pylon` includes additional models (`UserRole`, `Role`, `PricingPackage`, etc.) and functionality. Developers building SaaS applications should consult the full Pylon documentation for:
+
+- Role-based access control (RBAC)
+- Feature metering and usage tracking
+- Access guards and permission checks
+- Multi-tenancy configuration
+- Subscription and payment handling
+
+### Database-Specific Notes
+
+| Database | Notes |
+|----------|-------|
+| Postgres | Uses native `Json` type. `@db.VarChar` lengths are optional but included for clarity. |
+| MySQL | Requires `@db.VarChar` length specifications. MySQL does not have native JSON type in Prisma without `@db.Json`. Use `@db.Text` for large JSON fields. |
+| Supabase | Uses Postgres-compatible syntax. Supabase's built-in auth can be used alongside or replaced with these tables. |
+
+### File Structure for Prisma Schemas
+
+The `@semantq/auth` module organizes Prisma schemas as follows:
+
+```
+@semantq/auth/
+├── prisma/
+│   ├── postgres/
+│   │   ├── schema.prisma           (standalone auth - no Pylon)
+│   │   └── saas/
+│   │       └── schema.prisma       (auth + Pylon organization integration)
+│   ├── mysql/
+│   │   ├── schema.prisma           (standalone auth - no Pylon)
+│   │   └── saas/
+│   │       └── schema.prisma       (auth + Pylon organization integration)
+│   └── supabase/
+│       ├── schema.prisma           (standalone auth - no Pylon)
+│       └── saas/
+│           └── schema.prisma       (auth + Pylon organization integration)
+```
 
 ## FAQ
 

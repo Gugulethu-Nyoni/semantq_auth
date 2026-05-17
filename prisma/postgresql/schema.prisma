@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================
+// AUTH MODELS
+// ============================
+
+model User {
+  id                                Int             @id @default(autoincrement())
+  access_level                      Int             @default(1)
+  role                              String?
+  name                              String?
+  surname                           String?
+  email                             String          @unique
+  username                          String?         @unique
+  password_hash                     String
+  is_verified                       Boolean         @default(false)
+  verification_token                String?         @db.VarChar(512)
+  verification_token_expires_at     DateTime?
+  reset_token                       String?         @db.VarChar(512)
+  reset_token_expires_at            DateTime?
+  last_login_at                     DateTime?
+  failed_login_attempts             Int             @default(0)
+  status                            UserStatus      @default(ACTIVE)
+  createdAt                         DateTime        @default(now()) @map("created_at")
+  updatedAt                         DateTime        @default(now()) @updatedAt @map("updated_at")
+  userSettings                      Json?
+  
+  // Organization (OPTIONAL)
+  // Only relevant for SaaS application development with @semantq/pylon
+  // Remove this field and the organization relation below if not using SaaS features
+  organizationId                    Int?
+  
+  // Auth Relations
+  authLogs                          AuthLog[]
+  sessions                          Session[]
+  
+  // Organization Relations (OPTIONAL - remove with organizationId)
+  organization                      Organization?   @relation("OrganizationMembers", fields: [organizationId], references: [id])
+  
+  // Course Platform Relations (remove if not building a course platform)
+  tutorProfile                      TutorProfile?
+  courses                           Course[]        @relation("CourseInstructor")
+  reviews                           Review[]
+  enrollments                       Enrollment[]
+  userProgress                      UserProgress[]
+
+  @@map("users")
+}
+
+model Session {
+  id          String    @id @default(uuid())
+  userId      Int
+  token       String    @unique
+  device_info String?
+  ip_address  String?
+  is_revoked  Boolean   @default(false)
+  revoked_at  DateTime?
+  expires_at  DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expires_at])
+  @@index([userId, is_revoked, expires_at])
+  @@map("sessions")
+}
+
+model AuthLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ip        String?
+  userAgent String?
+  event     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("auth_logs")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+// ============================
+// OPTIONAL ORGANIZATION MODEL (for @semantq/pylon)
+// Only include this if using SaaS features
+// ============================
+
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  ownerId     Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  owner       User      @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  members     User[]    @relation("OrganizationMembers")
+  
+  @@map("organizations")
+}
